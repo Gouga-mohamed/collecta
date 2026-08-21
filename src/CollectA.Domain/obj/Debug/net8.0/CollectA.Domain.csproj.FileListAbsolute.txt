@@ -1,0 +1,11 @@
+C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\CollectA.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\CollectA.Domain.AssemblyInfoInputs.cache
+C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\CollectA.Domain.AssemblyInfo.cs
+C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\CollectA.Domain.csproj.CoreCompileInputs.cache
+C:\Projects\collecta\src\CollectA.Domain\bin\Debug\net8.0\CollectA.Domain.deps.json
+C:\Projects\collecta\src\CollectA.Domain\bin\Debug\net8.0\CollectA.Domain.dll
+C:\Projects\collecta\src\CollectA.Domain\bin\Debug\net8.0\CollectA.Domain.pdb
+C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\CollectA.Domain.dll
+C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\refint\CollectA.Domain.dll
+C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\CollectA.Domain.pdb
+C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\ref\CollectA.Domain.dll
