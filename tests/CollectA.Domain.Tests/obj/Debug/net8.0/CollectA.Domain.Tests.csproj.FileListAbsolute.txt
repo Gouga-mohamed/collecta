@@ -120,3 +120,4 @@ C:\Projects\collecta\tests\CollectA.Domain.Tests\obj\Debug\net8.0\refint\Collect
 C:\Projects\collecta\tests\CollectA.Domain.Tests\obj\Debug\net8.0\CollectA.Domain.Tests.pdb
 C:\Projects\collecta\tests\CollectA.Domain.Tests\obj\Debug\net8.0\CollectA.Domain.Tests.genruntimeconfig.cache
 C:\Projects\collecta\tests\CollectA.Domain.Tests\obj\Debug\net8.0\ref\CollectA.Domain.Tests.dll
+C:\Projects\collecta\tests\CollectA.Domain.Tests\obj\Debug\net8.0\CollectA.Domain.Tests.sourcelink.json

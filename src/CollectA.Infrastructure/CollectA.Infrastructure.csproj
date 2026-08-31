@@ -1,7 +1,6 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\CollectA.Application\CollectA.Application.csproj" />
     <ProjectReference Include="..\CollectA.Domain\CollectA.Domain.csproj" />
   </ItemGroup>
 

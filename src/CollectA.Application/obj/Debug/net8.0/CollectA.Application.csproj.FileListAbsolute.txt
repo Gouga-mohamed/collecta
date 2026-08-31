@@ -13,3 +13,4 @@ C:\Projects\collecta\src\CollectA.Application\obj\Debug\net8.0\CollectA.Applicat
 C:\Projects\collecta\src\CollectA.Application\obj\Debug\net8.0\refint\CollectA.Application.dll
 C:\Projects\collecta\src\CollectA.Application\obj\Debug\net8.0\CollectA.Application.pdb
 C:\Projects\collecta\src\CollectA.Application\obj\Debug\net8.0\ref\CollectA.Application.dll
+C:\Projects\collecta\src\CollectA.Application\obj\Debug\net8.0\CollectA.Application.sourcelink.json

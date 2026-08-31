@@ -1,6 +1,4 @@
-using CollectA.Application.Common.Interfaces;
-
-namespace CollectA.Application.Common.Interfaces;
+namespace CollectA.Domain.Common.Interfaces;
 
 public interface IAuthService
 {

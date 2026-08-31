@@ -2255,7 +2255,8 @@
           "CollectA.Domain": "1.0.0",
           "FluentValidation": "11.9.2",
           "FluentValidation.DependencyInjectionExtensions": "11.9.2",
-          "MediatR": "12.4.0"
+          "MediatR": "12.4.0",
+          "Microsoft.EntityFrameworkCore": "8.0.11"
         },
         "compile": {
           "bin/placeholder/CollectA.Application.dll": {}
@@ -2278,7 +2279,6 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v8.0",
         "dependencies": {
-          "CollectA.Application": "1.0.0",
           "CollectA.Domain": "1.0.0",
           "Microsoft.AspNetCore.Http.Abstractions": "2.2.0",
           "Microsoft.AspNetCore.Identity": "2.2.0",

@@ -17,3 +17,4 @@ C:\Projects\collecta\src\CollectA.Infrastructure\obj\Debug\net8.0\refint\Collect
 C:\Projects\collecta\src\CollectA.Infrastructure\obj\Debug\net8.0\CollectA.Infrastructure.pdb
 C:\Projects\collecta\src\CollectA.Infrastructure\obj\Debug\net8.0\CollectA.Infrastructure.genruntimeconfig.cache
 C:\Projects\collecta\src\CollectA.Infrastructure\obj\Debug\net8.0\ref\CollectA.Infrastructure.dll
+C:\Projects\collecta\src\CollectA.Infrastructure\obj\Debug\net8.0\CollectA.Infrastructure.sourcelink.json

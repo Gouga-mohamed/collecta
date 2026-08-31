@@ -162,6 +162,10 @@
             "MediatR": {
               "target": "Package",
               "version": "[12.4.0, )"
+            },
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.11, )"
             }
           },
           "imports": [
@@ -264,9 +268,6 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Projects\\collecta\\src\\CollectA.Application\\CollectA.Application.csproj": {
-                "projectPath": "C:\\Projects\\collecta\\src\\CollectA.Application\\CollectA.Application.csproj"
-              },
               "C:\\Projects\\collecta\\src\\CollectA.Domain\\CollectA.Domain.csproj": {
                 "projectPath": "C:\\Projects\\collecta\\src\\CollectA.Domain\\CollectA.Domain.csproj"
               }

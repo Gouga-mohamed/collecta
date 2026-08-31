@@ -9,3 +9,4 @@ C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\CollectA.Domain.dll
 C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\refint\CollectA.Domain.dll
 C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\CollectA.Domain.pdb
 C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\ref\CollectA.Domain.dll
+C:\Projects\collecta\src\CollectA.Domain\obj\Debug\net8.0\CollectA.Domain.sourcelink.json

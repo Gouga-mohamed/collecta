@@ -10,7 +10,7 @@ namespace CollectA.Infrastructure.Persistence;
 
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid,
     IdentityUserClaim<Guid>, ApplicationUserRole, IdentityUserLogin<Guid>,
-    IdentityRoleClaim<Guid>, IdentityUserToken<Guid>>
+    IdentityRoleClaim<Guid>, IdentityUserToken<Guid>>, IApplicationDbContext
 {
     private readonly ITenantContext _tenantContext;
 
