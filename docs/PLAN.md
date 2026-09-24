@@ -111,37 +111,37 @@ Légende :
 
 | # | Tâche | Statut | Notes |
 |---|-------|--------|-------|
-| 2.1 | Customers full CRUD + search | ⏳ | DTOs, validation FluentValidation |
-| 2.2 | Customer 360 endpoint | ⏳ | `/api/customers/{id}/summary` |
-| 2.3 | Invoices CRUD | ⏳ | Statuts auto, remaining amount, days overdue |
-| 2.4 | Payments CRUD | ⏳ | Mise à jour automatique de `PaidAmount` sur invoice |
-| 2.5 | Cheques module (MVP) | ⏳ | Statuts de suivi |
-| 2.6 | Receivables summary | ⏳ | Total, overdue, current, overdue % |
-| 2.7 | Aging buckets | ⏳ | Current / 1-30 / 31-60 / 61-90 / 91-120 / 121-180 / >180 |
-| 2.8 | Customer risk indicators basiques | ⏳ | Total due, overdue, DSO approximatif |
-| 2.9 | CSV import wizard | ⏳ | Upload, mapping, validation, preview, import |
-| 2.10 | DTOs & validation | ⏳ | Ne jamais exposer les entités EF |
+| 2.1 | Customers full CRUD + search | ✅ | DTOs, validation FluentValidation |
+| 2.2 | Customer 360 endpoint | ✅ | `/api/customers/{id}/summary` |
+| 2.3 | Invoices CRUD | ✅ | Statuts auto, remaining amount, days overdue |
+| 2.4 | Payments CRUD | ✅ | Mise à jour automatique de `PaidAmount` sur invoice |
+| 2.5 | Cheques module (MVP) | ✅ | Statuts de suivi |
+| 2.6 | Receivables summary | ✅ | Total, overdue, current, overdue % |
+| 2.7 | Aging buckets | ✅ | Current / 1-30 / 31-60 / 61-90 / 91-120 / 121-180 / >180 |
+| 2.8 | Customer risk indicators basiques | ✅ | Total due, overdue, DSO approximatif |
+| 2.9 | CSV import wizard | ✅ | Upload, mapping, validation, preview, import |
+| 2.10 | DTOs & validation | ✅ | Ne jamais exposer les entités EF |
 
 ### Frontend
 
 | # | Tâche | Statut | Notes |
 |---|-------|--------|-------|
-| 2.11 | Customers list page | ⏳ | TanStack Table, filtres, pagination |
-| 2.12 | Customer 360 page | ⏳ | Onglets overview/invoices/payments/timeline |
-| 2.13 | Invoices list page | ⏳ | Table avec statuts, montants, overdue |
-| 2.14 | Invoice detail page | ⏳ | Timeline, actions, paiements |
-| 2.15 | Payments page | ⏳ | Enregistrement manuel |
-| 2.16 | Receivables dashboard | ⏳ | KPIs + aging chart |
-| 2.17 | CSV import wizard UI | ⏳ | 5 étapes avec preview d'erreurs |
+| 2.11 | Customers list page | ✅ | TanStack Table, filtres, pagination |
+| 2.12 | Customer 360 page | ✅ | Onglets overview/invoices/payments/timeline |
+| 2.13 | Invoices list page | ✅ | Table avec statuts, montants, overdue |
+| 2.14 | Invoice detail page | ✅ | Timeline, actions, paiements |
+| 2.15 | Payments page | ✅ | Enregistrement manuel |
+| 2.16 | Receivables dashboard | ✅ | KPIs + aging chart |
+| 2.17 | CSV import wizard UI | ✅ | 3 étapes avec preview d'erreurs |
 
 ### Definition of Done Phase 2
 
-- [ ] CRUD complet clients, factures, paiements.
-- [ ] Calculs métier validés : remaining, overdue, aging.
-- [ ] Customer 360 navigable.
-- [ ] Import CSV fonctionnel.
-- [ ] Tests unitaires sur calculs financiers.
-- [ ] Frontend responsive, loading/error/empty states.
+- [x] CRUD complet clients, factures, paiements.
+- [x] Calculs métier validés : remaining, overdue, aging.
+- [x] Customer 360 navigable.
+- [x] Import CSV fonctionnel.
+- [x] Tests unitaires sur calculs financiers.
+- [x] Frontend responsive, loading/error/empty states.
 
 ---
 
@@ -260,12 +260,20 @@ Légende :
 
 ---
 
+## Phase 2 — terminée
+
+**Date de clôture :** 2026-09-24
+
+Tous les livrables de la Phase 2 (Core Receivables) sont implémentés et validés : clients, factures, paiements + chèques, créances, aging, Customer 360, dashboard CFO, analytics et import CSV wizard.
+
 ## Métriques actuelles
 
 - **Build backend :** ✅ 0 erreur, 0 warning
 - **Build frontend :** ✅ TypeScript OK
-- **Tests :** ✅ 4/4 passés
+- **Tests :** ✅ 31/31 passés (xUnit, calculs aging aux bornes, transitions de statut, paiements/chèques)
 - **Migrations :** ✅ `InitialCreate` générée
+- **Endpoints Phase 2 exposés :** Customers, Customer 360, Invoices, Payments, Receivables, Dashboard, Analytics, Imports
+- **Seed algérien :** 11 clients, 34 factures, 15 paiements (dont 6 chèques), 1 facture en litige
 - **Docker Compose :** ✅ Fichiers prêts (non exécuté ici faute de daemon)
 - **Documentation :** ✅ `ARCHITECTURE.md`, `README.md`, `docs/PLAN.md`
 
@@ -284,4 +292,4 @@ Légende :
 
 ## Prochaine action
 
-**Phase 2 — Core Receivables :** commencer par le module Invoices (CRUD + calculs métier) puis Payments, puis Aging.
+**Phase 3 — Collections :** activer le workflow de recouvrement (tâches, actions, promesses de paiement, litiges) et les pages agent/manager correspondantes.
