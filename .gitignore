@@ -1,0 +1,23 @@
+# .NET build artifacts
+bin/
+obj/
+out/
+
+# Frontend (nested repo gère son propre .gitignore)
+frontend/node_modules/
+frontend/.next/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs / env
+*.log
+.env
