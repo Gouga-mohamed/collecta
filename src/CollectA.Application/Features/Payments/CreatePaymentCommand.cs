@@ -1,4 +1,7 @@
 using CollectA.Application.Common.Dtos;
+using CollectA.Application.Common.Extensions;
+using CollectA.Domain.Common;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Domain.Entities;
 using CollectA.Domain.Enums;
 using CollectA.Application.Common.Interfaces;
@@ -23,22 +26,25 @@ public class CreatePaymentCommand : IRequest<PaymentDto>
 
 public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand, PaymentDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public CreatePaymentCommandHandler(IIIApplicationDbContext context)
+    public CreatePaymentCommandHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<PaymentDto> Handle(CreatePaymentCommand request, CancellationToken cancellationToken)
     {
-        var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
+        var customer = await _context.Customers.ForTenant(_tenantContext).FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
         if (customer == null) throw new KeyNotFoundException($"Customer '{request.CustomerId}' not found.");
 
         Domain.Entities.Invoice? invoice = null;
         if (request.InvoiceId.HasValue)
         {
             invoice = await _context.Invoices
+                .ForTenant(_tenantContext)
                 .Include(i => i.Customer)
                 .FirstOrDefaultAsync(i => i.Id == request.InvoiceId.Value && i.CustomerId == request.CustomerId, cancellationToken);
             if (invoice == null) throw new KeyNotFoundException($"Invoice '{request.InvoiceId}' not found for this customer.");
@@ -50,10 +56,12 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
             cheque = new Cheque
             {
                 Id = Guid.NewGuid(),
+                CustomerId = request.CustomerId,
                 ChequeNumber = request.Cheque.ChequeNumber,
                 BankName = request.Cheque.BankName,
                 Drawer = request.Cheque.Drawer,
-                DueDate = request.Cheque.DueDate,
+                DueDate = request.Cheque.DueDate ?? request.PaymentDate,
+                IssueDate = request.PaymentDate,
                 Amount = request.Amount,
                 Currency = request.Currency,
                 Notes = request.Cheque.Notes,
@@ -83,40 +91,11 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         if (invoice != null)
         {
             invoice.PaidAmount += request.Amount;
-            UpdateInvoiceStatus.Recalculate(invoice);
+            InvoiceStatusCalculator.Recalculate(invoice);
         }
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return GetPaymentsQuery.MapToDto(payment, customer.Name, invoice?.InvoiceNumber);
-    }
-}
-
-public static class UpdateInvoiceStatus
-{
-    public static void Recalculate(Domain.Entities.Invoice invoice)
-    {
-        if (invoice.Status == InvoiceStatus.Cancelled || invoice.Status == InvoiceStatus.WrittenOff) return;
-
-        if (invoice.PaidAmount >= invoice.Amount)
-        {
-            invoice.Status = InvoiceStatus.Paid;
-        }
-        else if (invoice.PaidAmount > 0)
-        {
-            invoice.Status = InvoiceStatus.PartiallyPaid;
-        }
-        else if (invoice.DueDate < DateTime.UtcNow.Date && invoice.Amount > 0)
-        {
-            invoice.Status = InvoiceStatus.Overdue;
-        }
-        else if (invoice.IsDisputed)
-        {
-            invoice.Status = InvoiceStatus.Disputed;
-        }
-        else
-        {
-            invoice.Status = InvoiceStatus.Open;
-        }
+        return GetPaymentsQueryHandler.MapToDto(payment, customer.Name, invoice?.InvoiceNumber);
     }
 }

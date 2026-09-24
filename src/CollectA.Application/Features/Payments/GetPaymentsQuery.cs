@@ -1,5 +1,7 @@
 using CollectA.Application.Common.Dtos;
+using CollectA.Application.Common.Extensions;
 using CollectA.Application.Common.Models;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -17,17 +19,20 @@ public class GetPaymentsQuery : IRequest<PagedResult<PaymentDto>>
 
 public class GetPaymentsQueryHandler : IRequestHandler<GetPaymentsQuery, PagedResult<PaymentDto>>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public GetPaymentsQueryHandler(IIIApplicationDbContext context)
+    public GetPaymentsQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<PagedResult<PaymentDto>> Handle(GetPaymentsQuery request, CancellationToken cancellationToken)
     {
         var query = _context.Payments
             .AsNoTracking()
+            .ForTenant(_tenantContext)
             .Include(p => p.Customer)
             .Include(p => p.Invoice)
             .Include(p => p.Cheque)

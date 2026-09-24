@@ -1,8 +1,8 @@
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Dtos;
 using CollectA.Application.Common.Extensions;
 using CollectA.Application.Common.Interfaces;
 using CollectA.Domain.Enums;
-using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,10 +15,10 @@ public class GetDsoQuery : IRequest<DsoResultDto>
 
 public class GetDsoQueryHandler : IRequestHandler<GetDsoQuery, DsoResultDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
 
-    public GetDsoQueryHandler(IIIApplicationDbContext context, ITenantContext tenantContext)
+    public GetDsoQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
         _tenantContext = tenantContext;
@@ -33,7 +33,7 @@ public class GetDsoQueryHandler : IRequestHandler<GetDsoQuery, DsoResultDto>
             .AsNoTracking()
             .ForTenant(_tenantContext)
             .Where(i => i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled && i.Status != InvoiceStatus.WrittenOff)
-            .SumAsync(i => i.RemainingAmount, cancellationToken);
+            .SumAsync(i => i.Amount - i.PaidAmount, cancellationToken);
 
         var totalInvoicedInPeriod = await _context.Invoices
             .AsNoTracking()

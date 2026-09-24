@@ -1,5 +1,7 @@
 using CollectA.Application.Common.Dtos;
+using CollectA.Application.Common.Extensions;
 using CollectA.Application.Common.Models;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Domain.Enums;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
@@ -19,17 +21,20 @@ public class GetInvoicesQuery : IRequest<PagedResult<InvoiceDto>>
 
 public class GetInvoicesQueryHandler : IRequestHandler<GetInvoicesQuery, PagedResult<InvoiceDto>>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public GetInvoicesQueryHandler(IIIApplicationDbContext context)
+    public GetInvoicesQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<PagedResult<InvoiceDto>> Handle(GetInvoicesQuery request, CancellationToken cancellationToken)
     {
         var query = _context.Invoices
             .AsNoTracking()
+            .ForTenant(_tenantContext)
             .Include(i => i.Customer)
             .AsQueryable();
 
@@ -45,9 +50,10 @@ public class GetInvoicesQueryHandler : IRequestHandler<GetInvoicesQuery, PagedRe
 
         if (request.IsOverdue.HasValue)
         {
+            var today = DateTime.UtcNow.Date;
             query = request.IsOverdue.Value
-                ? query.Where(i => i.IsOverdue)
-                : query.Where(i => !i.IsOverdue);
+                ? query.Where(i => i.DueDate < today && (i.Amount - i.PaidAmount) > 0)
+                : query.Where(i => !(i.DueDate < today && (i.Amount - i.PaidAmount) > 0));
         }
 
         if (request.FromDate.HasValue)

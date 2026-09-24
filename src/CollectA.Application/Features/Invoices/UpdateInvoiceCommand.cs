@@ -1,4 +1,6 @@
 using CollectA.Application.Common.Dtos;
+using CollectA.Application.Common.Extensions;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Domain.Enums;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
@@ -21,16 +23,19 @@ public class UpdateInvoiceCommand : IRequest<InvoiceDto>
 
 public class UpdateInvoiceCommandHandler : IRequestHandler<UpdateInvoiceCommand, InvoiceDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public UpdateInvoiceCommandHandler(IIIApplicationDbContext context)
+    public UpdateInvoiceCommandHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<InvoiceDto> Handle(UpdateInvoiceCommand request, CancellationToken cancellationToken)
     {
         var invoice = await _context.Invoices
+            .ForTenant(_tenantContext)
             .Include(i => i.Customer)
             .Include(i => i.Payments)
             .FirstOrDefaultAsync(i => i.Id == request.Id, cancellationToken);
@@ -50,7 +55,7 @@ public class UpdateInvoiceCommandHandler : IRequestHandler<UpdateInvoiceCommand,
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return GetInvoicesQuery.MapToDto(invoice, invoice.Customer.Name);
+        return GetInvoicesQueryHandler.MapToDto(invoice, invoice.Customer.Name);
     }
 
     public static void RecalculateInvoiceStatus(Domain.Entities.Invoice invoice)

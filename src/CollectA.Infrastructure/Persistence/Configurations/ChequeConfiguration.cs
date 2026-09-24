@@ -14,6 +14,7 @@ public class ChequeConfiguration : IEntityTypeConfiguration<Cheque>
         builder.Property(c => c.Amount).HasPrecision(18, 2);
         builder.Property(c => c.Currency).HasMaxLength(3).IsRequired();
         builder.Property(c => c.BankName).HasMaxLength(100);
+        builder.Property(c => c.Drawer).HasMaxLength(200);
         builder.HasOne(c => c.Customer).WithMany().HasForeignKey(c => c.CustomerId).OnDelete(DeleteBehavior.Cascade);
     }
 }

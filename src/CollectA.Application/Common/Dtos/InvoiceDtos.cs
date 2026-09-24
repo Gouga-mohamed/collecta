@@ -27,9 +27,6 @@ public class InvoiceDetailDto : InvoiceDto
 {
     public List<InvoiceLineDto> Lines { get; set; } = new();
     public List<PaymentDto> Payments { get; set; } = new();
-    public List<CollectionActionDto> CollectionActions { get; set; } = new();
-    public List<PromiseToPayDto> Promises { get; set; } = new();
-    public List<DisputeDto> Disputes { get; set; } = new();
 }
 
 public class InvoiceLineDto
@@ -41,35 +38,9 @@ public class InvoiceLineDto
     public decimal Amount { get; set; }
 }
 
-public class CreateInvoiceCommand
-{
-    public string InvoiceNumber { get; set; } = string.Empty;
-    public Guid CustomerId { get; set; }
-    public DateTime InvoiceDate { get; set; }
-    public DateTime DueDate { get; set; }
-    public decimal Amount { get; set; }
-    public string Currency { get; set; } = "DZD";
-    public string? Description { get; set; }
-    public int PaymentTermsDays { get; set; } = 30;
-    public List<CreateInvoiceLineCommand> Lines { get; set; } = new();
-}
-
 public class CreateInvoiceLineCommand
 {
     public string Description { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
-}
-
-public class UpdateInvoiceCommand
-{
-    public Guid Id { get; set; }
-    public DateTime InvoiceDate { get; set; }
-    public DateTime DueDate { get; set; }
-    public decimal Amount { get; set; }
-    public string Currency { get; set; } = "DZD";
-    public string? Description { get; set; }
-    public int PaymentTermsDays { get; set; }
-    public InvoiceStatus Status { get; set; }
-    public bool IsDisputed { get; set; }
 }

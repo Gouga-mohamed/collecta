@@ -1,4 +1,6 @@
 using CollectA.Application.Common.Dtos;
+using CollectA.Application.Common.Extensions;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Domain.Entities;
 using CollectA.Domain.Enums;
 using CollectA.Application.Common.Interfaces;
@@ -22,19 +24,21 @@ public class CreateInvoiceCommand : IRequest<InvoiceDto>
 
 public class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceCommand, InvoiceDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public CreateInvoiceCommandHandler(IIIApplicationDbContext context)
+    public CreateInvoiceCommandHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<InvoiceDto> Handle(CreateInvoiceCommand request, CancellationToken cancellationToken)
     {
-        var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
+        var customer = await _context.Customers.ForTenant(_tenantContext).FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
         if (customer == null) throw new KeyNotFoundException($"Customer '{request.CustomerId}' not found.");
 
-        if (await _context.Invoices.AnyAsync(i => i.InvoiceNumber == request.InvoiceNumber, cancellationToken))
+        if (await _context.Invoices.ForTenant(_tenantContext).AnyAsync(i => i.InvoiceNumber == request.InvoiceNumber, cancellationToken))
         {
             throw new InvalidOperationException($"Invoice number '{request.InvoiceNumber}' already exists.");
         }
@@ -45,8 +49,7 @@ public class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceCommand,
                 Id = Guid.NewGuid(),
                 Description = l.Description,
                 Quantity = l.Quantity,
-                UnitPrice = l.UnitPrice,
-                Amount = l.Quantity * l.UnitPrice
+                UnitPrice = l.UnitPrice
             }).ToList()
             : new List<InvoiceLine>();
 
@@ -71,6 +74,6 @@ public class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceCommand,
         _context.Invoices.Add(invoice);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return GetInvoicesQuery.MapToDto(invoice, customer.Name);
+        return GetInvoicesQueryHandler.MapToDto(invoice, customer.Name);
     }
 }

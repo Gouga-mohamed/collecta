@@ -9,6 +9,7 @@ public class Cheque : BaseEntity
     public Guid CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
     public string? BankName { get; set; }
+    public string? Drawer { get; set; }
     public decimal Amount { get; set; }
     public string Currency { get; set; } = "DZD";
     public DateTime IssueDate { get; set; }

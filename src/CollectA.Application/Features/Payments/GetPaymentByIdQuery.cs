@@ -1,4 +1,6 @@
 using CollectA.Application.Common.Dtos;
+using CollectA.Application.Common.Extensions;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -12,17 +14,20 @@ public class GetPaymentByIdQuery : IRequest<PaymentDto?>
 
 public class GetPaymentByIdQueryHandler : IRequestHandler<GetPaymentByIdQuery, PaymentDto?>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public GetPaymentByIdQueryHandler(IIIApplicationDbContext context)
+    public GetPaymentByIdQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<PaymentDto?> Handle(GetPaymentByIdQuery request, CancellationToken cancellationToken)
     {
         var payment = await _context.Payments
             .AsNoTracking()
+            .ForTenant(_tenantContext)
             .Include(p => p.Customer)
             .Include(p => p.Invoice)
             .Include(p => p.Cheque)
@@ -30,6 +35,6 @@ public class GetPaymentByIdQueryHandler : IRequestHandler<GetPaymentByIdQuery, P
 
         if (payment == null) return null;
 
-        return GetPaymentsQuery.MapToDto(payment, payment.Customer.Name, payment.Invoice?.InvoiceNumber);
+        return GetPaymentsQueryHandler.MapToDto(payment, payment.Customer.Name, payment.Invoice?.InvoiceNumber);
     }
 }

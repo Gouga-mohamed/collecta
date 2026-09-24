@@ -1,9 +1,9 @@
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Dtos;
 using CollectA.Application.Common.Extensions;
 using CollectA.Application.Common.Interfaces;
 using CollectA.Application.Features.Receivables;
 using CollectA.Domain.Enums;
-using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,10 +15,10 @@ public class GetCfoDashboardQuery : IRequest<CfoDashboardDto>
 
 public class GetCfoDashboardQueryHandler : IRequestHandler<GetCfoDashboardQuery, CfoDashboardDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
 
-    public GetCfoDashboardQueryHandler(IIIApplicationDbContext context, ITenantContext tenantContext)
+    public GetCfoDashboardQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
         _tenantContext = tenantContext;
@@ -73,7 +73,7 @@ public class GetCfoDashboardQueryHandler : IRequestHandler<GetCfoDashboardQuery,
 
         var dso = await CalculateDsoAsync(today, cancellationToken);
 
-        var aging = await new GetAgingQueryHandler(_context).Handle(new GetAgingQuery(), cancellationToken);
+        var aging = await new GetAgingQueryHandler(_context, _tenantContext).Handle(new GetAgingQuery(), cancellationToken);
 
         var topDebtors = invoices
             .GroupBy(i => new { i.CustomerId, i.Customer.Name })
@@ -140,7 +140,7 @@ public class GetCfoDashboardQueryHandler : IRequestHandler<GetCfoDashboardQuery,
             .AsNoTracking()
             .ForTenant(_tenantContext)
             .Where(i => i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled && i.Status != InvoiceStatus.WrittenOff)
-            .SumAsync(i => i.RemainingAmount, cancellationToken);
+            .SumAsync(i => i.Amount - i.PaidAmount, cancellationToken);
 
         var totalInvoicedInPeriod = await _context.Invoices
             .AsNoTracking()

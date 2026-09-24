@@ -1,9 +1,9 @@
+using CollectA.Domain.Common;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Dtos;
 using CollectA.Application.Common.Extensions;
 using CollectA.Application.Common.Interfaces;
-using CollectA.Application.Features.Payments;
 using CollectA.Domain.Entities;
-using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,10 +17,10 @@ public class ConfirmCsvImportCommand : IRequest<CsvImportResultDto>
 
 public class ConfirmCsvImportCommandHandler : IRequestHandler<ConfirmCsvImportCommand, CsvImportResultDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
 
-    public ConfirmCsvImportCommandHandler(IIIApplicationDbContext context, ITenantContext tenantContext)
+    public ConfirmCsvImportCommandHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
         _tenantContext = tenantContext;
@@ -37,6 +37,8 @@ public class ConfirmCsvImportCommandHandler : IRequestHandler<ConfirmCsvImportCo
         var headerIndex = session.Headers
             .Select((h, i) => new { Header = h, Index = i })
             .ToDictionary(x => x.Header, x => x.Index, StringComparer.OrdinalIgnoreCase);
+
+        var mapping = request.ColumnMapping.Count > 0 ? request.ColumnMapping : session.ColumnMapping;
 
         var result = new CsvImportResultDto();
         var importedInvoices = 0;
@@ -57,7 +59,7 @@ public class ConfirmCsvImportCommandHandler : IRequestHandler<ConfirmCsvImportCo
         {
             var rowNumber = i + 2;
             var rowValues = session.Rows[i];
-            var values = GetMappedValues(rowValues, headerIndex, request.ColumnMapping);
+            var values = GetMappedValues(rowValues, headerIndex, mapping);
 
             if (!TryGetRequired(values, "CustomerCode", out var customerCode) ||
                 !TryGetRequired(values, "CustomerName", out var customerName))
@@ -72,7 +74,11 @@ public class ConfirmCsvImportCommandHandler : IRequestHandler<ConfirmCsvImportCo
             {
                 customer = existingCustomer;
             }
-            else if (!customersToAdd.TryGetValue(customerCode, out customer))
+            else if (customersToAdd.TryGetValue(customerCode, out var newCustomer))
+            {
+                customer = newCustomer;
+            }
+            else
             {
                 customer = new Customer
                 {
@@ -124,7 +130,7 @@ public class ConfirmCsvImportCommandHandler : IRequestHandler<ConfirmCsvImportCo
                     PaymentTermsDays = ParseInt(values, "PaymentTermsDays", 30)
                 };
 
-                UpdateInvoiceStatus.Recalculate(invoice);
+                InvoiceStatusCalculator.Recalculate(invoice);
                 invoicesToAdd.Add(invoice);
                 importedInvoices++;
             }
@@ -156,8 +162,9 @@ public class ConfirmCsvImportCommandHandler : IRequestHandler<ConfirmCsvImportCo
 
     private static bool TryGetRequired(Dictionary<string, string> values, string key, out string value)
     {
-        if (values.TryGetValue(key, out value) && !string.IsNullOrWhiteSpace(value))
+        if (values.TryGetValue(key, out var found) && !string.IsNullOrWhiteSpace(found))
         {
+            value = found;
             return true;
         }
         value = string.Empty;

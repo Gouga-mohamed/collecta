@@ -1,3 +1,4 @@
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 using CollectA.Domain.Common;
 

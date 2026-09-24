@@ -1,6 +1,6 @@
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Dtos;
 using CollectA.Application.Common.Extensions;
-using CollectA.Application.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +14,10 @@ public class GetReminderTemplateByIdQuery : IRequest<ReminderTemplateDto?>
 
 public class GetReminderTemplateByIdQueryHandler : IRequestHandler<GetReminderTemplateByIdQuery, ReminderTemplateDto?>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
 
-    public GetReminderTemplateByIdQueryHandler(IIIApplicationDbContext context, ITenantContext tenantContext)
+    public GetReminderTemplateByIdQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
         _tenantContext = tenantContext;
@@ -32,6 +32,6 @@ public class GetReminderTemplateByIdQueryHandler : IRequestHandler<GetReminderTe
 
         if (template == null) return null;
 
-        return GetReminderTemplatesQuery.MapToDto(template);
+        return GetReminderTemplatesQueryHandler.MapToDto(template);
     }
 }

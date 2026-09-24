@@ -1,3 +1,6 @@
+using CollectA.Application.Common.Extensions;
+using CollectA.Domain.Common;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -11,16 +14,19 @@ public class DeletePaymentCommand : IRequest<Unit>
 
 public class DeletePaymentCommandHandler : IRequestHandler<DeletePaymentCommand, Unit>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public DeletePaymentCommandHandler(IIIApplicationDbContext context)
+    public DeletePaymentCommandHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<Unit> Handle(DeletePaymentCommand request, CancellationToken cancellationToken)
     {
         var payment = await _context.Payments
+            .ForTenant(_tenantContext)
             .Include(p => p.Invoice)
             .Include(p => p.Cheque)
             .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
@@ -31,7 +37,7 @@ public class DeletePaymentCommandHandler : IRequestHandler<DeletePaymentCommand,
         {
             payment.Invoice.PaidAmount -= payment.Amount;
             if (payment.Invoice.PaidAmount < 0) payment.Invoice.PaidAmount = 0;
-            UpdateInvoiceStatus.Recalculate(payment.Invoice);
+            InvoiceStatusCalculator.Recalculate(payment.Invoice);
         }
 
         if (payment.Cheque != null)

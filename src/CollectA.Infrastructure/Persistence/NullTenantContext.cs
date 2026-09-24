@@ -1,3 +1,4 @@
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 
 namespace CollectA.Infrastructure.Persistence;

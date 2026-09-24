@@ -1,5 +1,5 @@
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Extensions;
-using CollectA.Application.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +13,10 @@ public class DeleteReminderTemplateCommand : IRequest<Unit>
 
 public class DeleteReminderTemplateCommandHandler : IRequestHandler<DeleteReminderTemplateCommand, Unit>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
 
-    public DeleteReminderTemplateCommandHandler(IIIApplicationDbContext context, ITenantContext tenantContext)
+    public DeleteReminderTemplateCommandHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
         _tenantContext = tenantContext;

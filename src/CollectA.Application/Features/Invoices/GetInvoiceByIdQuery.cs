@@ -1,4 +1,8 @@
+using CollectA.Application.Features.Invoices;
+using CollectA.Application.Features.Payments;
 using CollectA.Application.Common.Dtos;
+using CollectA.Application.Common.Extensions;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -12,28 +16,28 @@ public class GetInvoiceByIdQuery : IRequest<InvoiceDetailDto?>
 
 public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, InvoiceDetailDto?>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public GetInvoiceByIdQueryHandler(IIIApplicationDbContext context)
+    public GetInvoiceByIdQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<InvoiceDetailDto?> Handle(GetInvoiceByIdQuery request, CancellationToken cancellationToken)
     {
         var invoice = await _context.Invoices
             .AsNoTracking()
+            .ForTenant(_tenantContext)
             .Include(i => i.Customer)
             .Include(i => i.Lines)
             .Include(i => i.Payments)
-            .Include(i => i.CollectionActions)
-            .Include(i => i.Promises)
-            .Include(i => i.Disputes)
             .FirstOrDefaultAsync(i => i.Id == request.Id, cancellationToken);
 
         if (invoice == null) return null;
 
-        var dto = GetInvoicesQuery.MapToDto(invoice, invoice.Customer.Name);
+        var dto = GetInvoicesQueryHandler.MapToDto(invoice, invoice.Customer.Name);
         return new InvoiceDetailDto
         {
             Id = dto.Id,
@@ -60,10 +64,7 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, I
                 UnitPrice = l.UnitPrice,
                 Amount = l.Amount
             }).ToList(),
-            Payments = invoice.Payments.Select(p => GetPaymentsQuery.MapToDto(p, invoice.Customer.Name, invoice.InvoiceNumber)).ToList(),
-            CollectionActions = invoice.CollectionActions.Select(a => GetCollectionActionsQuery.MapToDto(a, invoice.Customer.Name)).ToList(),
-            Promises = invoice.Promises.Select(p => GetPromisesQuery.MapToDto(p, invoice.Customer.Name)).ToList(),
-            Disputes = invoice.Disputes.Select(d => GetDisputesQuery.MapToDto(d, invoice.Customer.Name)).ToList()
+            Payments = invoice.Payments.Select(p => GetPaymentsQueryHandler.MapToDto(p, invoice.Customer.Name, invoice.InvoiceNumber)).ToList()
         };
     }
 }

@@ -1,3 +1,5 @@
+using CollectA.Application.Common.Extensions;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Dtos;
 using CollectA.Domain.Entities;
 using CollectA.Application.Common.Interfaces;
@@ -18,16 +20,18 @@ public class CreateReminderTemplateCommand : IRequest<ReminderTemplateDto>
 
 public class CreateReminderTemplateCommandHandler : IRequestHandler<CreateReminderTemplateCommand, ReminderTemplateDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public CreateReminderTemplateCommandHandler(IIIApplicationDbContext context)
+    public CreateReminderTemplateCommandHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<ReminderTemplateDto> Handle(CreateReminderTemplateCommand request, CancellationToken cancellationToken)
     {
-        if (await _context.ReminderTemplates.AnyAsync(t => t.Name == request.Name, cancellationToken))
+        if (await _context.ReminderTemplates.ForTenant(_tenantContext).AnyAsync(t => t.Name == request.Name, cancellationToken))
         {
             throw new InvalidOperationException($"Reminder template name '{request.Name}' already exists.");
         }
@@ -46,6 +50,6 @@ public class CreateReminderTemplateCommandHandler : IRequestHandler<CreateRemind
         _context.ReminderTemplates.Add(template);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return GetReminderTemplatesQuery.MapToDto(template);
+        return GetReminderTemplatesQueryHandler.MapToDto(template);
     }
 }

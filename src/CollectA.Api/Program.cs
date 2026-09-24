@@ -93,6 +93,8 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+app.UseMiddleware<CollectA.Api.Middleware.ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

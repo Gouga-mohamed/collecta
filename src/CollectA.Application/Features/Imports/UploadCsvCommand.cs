@@ -27,20 +27,21 @@ public class UploadCsvCommandHandler : IRequestHandler<UploadCsvCommand, CsvImpo
 
         var headers = ParseLine(lines[0]);
         var rows = lines.Skip(1)
-            .Select(ParseLine)
+            .Select(l => ParseLine(l).ToArray())
             .ToList();
 
         var importId = Guid.NewGuid();
+        var defaultMapping = BuildDefaultMapping(headers);
         var session = new ImportSession
         {
             Id = importId,
             FileName = request.FileName,
             Headers = headers,
-            Rows = rows
+            Rows = rows,
+            ColumnMapping = defaultMapping
         };
         ImportSessionStore.Set(session);
 
-        var defaultMapping = BuildDefaultMapping(headers);
         var preview = CsvImportPreviewBuilder.Build(importId, request.FileName, headers, rows, defaultMapping);
 
         return Task.FromResult(preview);

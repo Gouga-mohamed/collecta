@@ -1,3 +1,5 @@
+using CollectA.Application.Common.Extensions;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Dtos;
 using CollectA.Domain.Entities;
 using CollectA.Application.Common.Interfaces;
@@ -27,16 +29,18 @@ public class CreateCustomerCommand : IRequest<CustomerDto>
 
 public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerCommand, CustomerDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public CreateCustomerCommandHandler(IIIApplicationDbContext context)
+    public CreateCustomerCommandHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<CustomerDto> Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
     {
-        if (await _context.Customers.AnyAsync(c => c.Code == request.Code, cancellationToken))
+        if (await _context.Customers.ForTenant(_tenantContext).AnyAsync(c => c.Code == request.Code, cancellationToken))
         {
             throw new InvalidOperationException($"Customer code '{request.Code}' already exists.");
         }
@@ -65,6 +69,6 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
         _context.Customers.Add(customer);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return GetCustomersQuery.MapToDto(customer);
+        return GetCustomersQueryHandler.MapToDto(customer);
     }
 }

@@ -1,5 +1,7 @@
 using CollectA.Application.Common.Dtos;
+using CollectA.Application.Common.Extensions;
 using CollectA.Application.Common.Models;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -15,17 +17,20 @@ public class GetCustomersQuery : IRequest<PagedResult<CustomerDto>>
 
 public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, PagedResult<CustomerDto>>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public GetCustomersQueryHandler(IIIApplicationDbContext context)
+    public GetCustomersQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<PagedResult<CustomerDto>> Handle(GetCustomersQuery request, CancellationToken cancellationToken)
     {
         var query = _context.Customers
             .AsNoTracking()
+            .ForTenant(_tenantContext)
             .Include(c => c.Invoices)
             .Include(c => c.RiskScores.OrderByDescending(r => r.CalculatedAt).Take(1))
             .AsQueryable();

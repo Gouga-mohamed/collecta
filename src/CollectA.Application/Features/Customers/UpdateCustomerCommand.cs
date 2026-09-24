@@ -1,3 +1,5 @@
+using CollectA.Application.Common.Extensions;
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Dtos;
 using CollectA.Application.Common.Interfaces;
 using MediatR;
@@ -27,16 +29,19 @@ public class UpdateCustomerCommand : IRequest<CustomerDto>
 
 public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerCommand, CustomerDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public UpdateCustomerCommandHandler(IIIApplicationDbContext context)
+    public UpdateCustomerCommandHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<CustomerDto> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken)
     {
         var customer = await _context.Customers
+            .ForTenant(_tenantContext)
             .Include(c => c.Invoices)
             .Include(c => c.RiskScores.OrderByDescending(r => r.CalculatedAt).Take(1))
             .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
@@ -61,6 +66,6 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return GetCustomersQuery.MapToDto(customer);
+        return GetCustomersQueryHandler.MapToDto(customer);
     }
 }

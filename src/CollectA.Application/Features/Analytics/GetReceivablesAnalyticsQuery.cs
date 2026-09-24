@@ -1,9 +1,9 @@
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Dtos;
 using CollectA.Application.Common.Extensions;
 using CollectA.Application.Common.Interfaces;
 using CollectA.Application.Features.Receivables;
 using CollectA.Domain.Enums;
-using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,10 +16,10 @@ public class GetReceivablesAnalyticsQuery : IRequest<ReceivablesAnalyticsDto>
 
 public class GetReceivablesAnalyticsQueryHandler : IRequestHandler<GetReceivablesAnalyticsQuery, ReceivablesAnalyticsDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
 
-    public GetReceivablesAnalyticsQueryHandler(IIIApplicationDbContext context, ITenantContext tenantContext)
+    public GetReceivablesAnalyticsQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
         _tenantContext = tenantContext;
@@ -42,10 +42,10 @@ public class GetReceivablesAnalyticsQueryHandler : IRequestHandler<GetReceivable
 
         var overdueInvoices = invoices.Where(i => i.IsOverdue).ToList();
         var averageDaysOverdue = overdueInvoices.Any()
-            ? overdueInvoices.Average(i => i.DaysOverdue)
+            ? (decimal)overdueInvoices.Average(i => i.DaysOverdue)
             : 0;
 
-        var aging = await new GetAgingQueryHandler(_context).Handle(new GetAgingQuery(), cancellationToken);
+        var aging = await new GetAgingQueryHandler(_context, _tenantContext).Handle(new GetAgingQuery(), cancellationToken);
 
         var trends = await GetTrendsAsync(today, request.TrendMonths, cancellationToken);
 
@@ -98,7 +98,7 @@ public class GetReceivablesAnalyticsQueryHandler : IRequestHandler<GetReceivable
                             && i.Status != InvoiceStatus.Cancelled
                             && i.Status != InvoiceStatus.WrittenOff
                             && i.InvoiceDate <= monthEnd)
-                .SumAsync(i => i.RemainingAmount, cancellationToken);
+                .SumAsync(i => i.Amount - i.PaidAmount, cancellationToken);
 
             var snapshotOverdue = await _context.Invoices
                 .AsNoTracking()
@@ -108,8 +108,8 @@ public class GetReceivablesAnalyticsQueryHandler : IRequestHandler<GetReceivable
                             && i.Status != InvoiceStatus.WrittenOff
                             && i.InvoiceDate <= monthEnd
                             && i.DueDate < monthStart.AddMonths(1)
-                            && i.RemainingAmount > 0)
-                .SumAsync(i => i.RemainingAmount, cancellationToken);
+                            && (i.Amount - i.PaidAmount) > 0)
+                .SumAsync(i => i.Amount - i.PaidAmount, cancellationToken);
 
             result.Add(new ReceivablesTrendPointDto
             {

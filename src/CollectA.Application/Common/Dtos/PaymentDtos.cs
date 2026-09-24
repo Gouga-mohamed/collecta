@@ -20,20 +20,6 @@ public class PaymentDto
     public DateTime CreatedAt { get; set; }
 }
 
-public class CreatePaymentCommand
-{
-    public Guid CustomerId { get; set; }
-    public Guid? InvoiceId { get; set; }
-    public decimal Amount { get; set; }
-    public string Currency { get; set; } = "DZD";
-    public DateTime PaymentDate { get; set; }
-    public PaymentMethod Method { get; set; } = PaymentMethod.BankTransfer;
-    public string? Reference { get; set; }
-    public string? BankName { get; set; }
-    public string? Notes { get; set; }
-    public CreateChequeCommand? Cheque { get; set; }
-}
-
 public class ChequeDto
 {
     public Guid Id { get; set; }

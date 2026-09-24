@@ -1,3 +1,4 @@
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Interfaces;
 using CollectA.Domain.Common;
 using CollectA.Domain.Entities;
@@ -5,6 +6,7 @@ using CollectA.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CollectA.Infrastructure.Persistence;
 
@@ -47,6 +49,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Note> Notes => Set<Note>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // PostgreSQL exige Kind=UTC pour 'timestamp with time zone'.
+        // Les dates issues du JSON (Kind=Unspecified) sont normalisées ici, en un seul point.
+        configurationBuilder.Properties<DateTime>().HaveConversion(typeof(UtcDateTimeConverter));
+        configurationBuilder.Properties<DateTime?>().HaveConversion(typeof(UtcDateTimeConverter));
+    }
+
+    private sealed class UtcDateTimeConverter()
+        : ValueConverter<DateTime, DateTime>(
+            v => v.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(v, DateTimeKind.Utc)
+                : v.ToUniversalTime(),
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

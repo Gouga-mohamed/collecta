@@ -1,8 +1,8 @@
+using CollectA.Domain.Common.Interfaces;
 using CollectA.Application.Common.Dtos;
 using CollectA.Application.Common.Extensions;
 using CollectA.Application.Common.Interfaces;
 using CollectA.Domain.Enums;
-using CollectA.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,10 +15,10 @@ public class GetCashForecastQuery : IRequest<CashForecastDto>
 
 public class GetCashForecastQueryHandler : IRequestHandler<GetCashForecastQuery, CashForecastDto>
 {
-    private readonly IIIApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
 
-    public GetCashForecastQueryHandler(IIIApplicationDbContext context, ITenantContext tenantContext)
+    public GetCashForecastQueryHandler(IApplicationDbContext context, ITenantContext tenantContext)
     {
         _context = context;
         _tenantContext = tenantContext;
@@ -47,7 +47,7 @@ public class GetCashForecastQueryHandler : IRequestHandler<GetCashForecastQuery,
                               && inv.Status != InvoiceStatus.WrittenOff
                               && inv.DueDate >= periodStart
                               && inv.DueDate <= periodEnd)
-                .SumAsync(inv => inv.RemainingAmount, cancellationToken);
+                .SumAsync(inv => inv.Amount - inv.PaidAmount, cancellationToken);
 
             var promisedInPeriod = await _context.PromiseToPays
                 .AsNoTracking()
