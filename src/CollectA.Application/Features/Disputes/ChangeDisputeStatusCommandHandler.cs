@@ -1,0 +1,86 @@
+using CollectA.Application.Common.Dtos;
+using CollectA.Application.Common.Extensions;
+using CollectA.Application.Common.Interfaces;
+using CollectA.Domain.Common;
+using CollectA.Domain.Common.Interfaces;
+using CollectA.Domain.Enums;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+
+namespace CollectA.Application.Features.Disputes;
+
+public class ChangeDisputeStatusCommandHandler : IRequestHandler<ChangeDisputeStatusCommand, DisputeDto>
+{
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
+    private readonly IUserLookupService _userLookupService;
+
+    public ChangeDisputeStatusCommandHandler(IApplicationDbContext context, ITenantContext tenantContext, IUserLookupService userLookupService)
+    {
+        _context = context;
+        _tenantContext = tenantContext;
+        _userLookupService = userLookupService;
+    }
+
+    public async Task<DisputeDto> Handle(ChangeDisputeStatusCommand request, CancellationToken cancellationToken)
+    {
+        var dispute = await _context.Disputes
+            .ForTenant(_tenantContext)
+            .Include(d => d.Customer)
+            .Include(d => d.Invoice)
+            .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
+
+        if (dispute == null) throw new KeyNotFoundException($"Dispute '{request.Id}' not found.");
+
+        if (!DisputeWorkflow.CanTransitionTo(dispute.Status, request.Status))
+        {
+            throw new InvalidOperationException($"Cannot transition dispute from '{dispute.Status}' to '{request.Status}'.");
+        }
+
+        var oldStatus = dispute.Status;
+        if (oldStatus != request.Status)
+        {
+            dispute.Status = request.Status;
+
+            if (request.Status == DisputeStatus.Resolved)
+            {
+                dispute.ResolvedAt = DateTime.UtcNow;
+            }
+            else if (!DisputeWorkflow.IsActive(request.Status))
+            {
+                dispute.ResolvedAt ??= DateTime.UtcNow;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ResolutionNotes))
+            {
+                dispute.ResolutionNotes = request.ResolutionNotes;
+            }
+
+            if (dispute.InvoiceId.HasValue)
+            {
+                var invoice = dispute.Invoice ?? await _context.Invoices.ForTenant(_tenantContext).FirstOrDefaultAsync(i => i.Id == dispute.InvoiceId.Value, cancellationToken);
+                if (invoice != null)
+                {
+                    invoice.IsDisputed = DisputeWorkflow.IsActive(request.Status);
+                    if (invoice.IsDisputed && !invoice.DisputedAt.HasValue)
+                    {
+                        invoice.DisputedAt = DateTime.UtcNow;
+                    }
+                    else if (!invoice.IsDisputed)
+                    {
+                        invoice.DisputedAt = null;
+                    }
+                    InvoiceStatusCalculator.Recalculate(invoice);
+                }
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var responsibleName = dispute.ResponsibleId.HasValue
+            ? await _userLookupService.GetUserFullNameAsync(dispute.ResponsibleId.Value, cancellationToken)
+            : null;
+
+        return GetDisputesQueryHandler.MapToDto(dispute, dispute.Customer.Name, dispute.Invoice?.InvoiceNumber, responsibleName);
+    }
+}

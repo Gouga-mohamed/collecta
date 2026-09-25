@@ -58,6 +58,10 @@ public class Customer360Dto
     public List<InvoiceDto> Invoices { get; set; } = new();
     public List<PaymentDto> Payments { get; set; } = new();
     public List<NoteDto> Notes { get; set; } = new();
+    public List<CollectionActionDto> RecentActions { get; set; } = new();
+    public List<CollectionTaskDto> OpenTasks { get; set; } = new();
+    public List<PromiseToPayDto> ActivePromises { get; set; } = new();
+    public List<DisputeDto> OpenDisputes { get; set; } = new();
 }
 
 public class NoteDto

@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollectA.Infrastructure.Persistence.Seed;
 
+using TaskStatus = CollectA.Domain.Enums.TaskStatus;
+
 public static class SeedData
 {
     public static async Task SeedAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
@@ -52,6 +54,22 @@ public static class SeedData
         await userManager.CreateAsync(adminUser, "Admin123!");
         await userManager.AddToRoleAsync(adminUser, "Owner");
 
+        var agentUser = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = "agent@atlas-distribution.dz",
+            Email = "agent@atlas-distribution.dz",
+            NormalizedEmail = "AGENT@ATLAS-DISTRIBUTION.DZ",
+            NormalizedUserName = "AGENT@ATLAS-DISTRIBUTION.DZ",
+            FirstName = "Karim",
+            LastName = "Haddad",
+            TenantId = tenant.Id,
+            EmailConfirmed = true,
+            LockoutEnabled = false
+        };
+        await userManager.CreateAsync(agentUser, "Agent123!");
+        await userManager.AddToRoleAsync(agentUser, "Owner");
+
         var today = DateTime.UtcNow.Date;
 
         var customers = BuildCustomers(tenant.Id);
@@ -64,6 +82,26 @@ public static class SeedData
         var (payments, cheques) = BuildPayments(tenant.Id, invoices, today);
         context.Cheques.AddRange(cheques);
         context.Payments.AddRange(payments);
+
+        await context.SaveChangesAsync();
+
+        var users = new List<ApplicationUser> { adminUser, agentUser };
+        var disputes = BuildDisputes(tenant.Id, customers, invoices, users, today);
+
+        context.CollectionTasks.AddRange(BuildCollectionTasks(tenant.Id, customers, invoices, users, today));
+        context.CollectionActions.AddRange(BuildCollectionActions(tenant.Id, customers, invoices, users, today));
+        context.PromiseToPays.AddRange(BuildPromises(tenant.Id, customers, invoices, users, today));
+        context.Disputes.AddRange(disputes);
+
+        foreach (var dispute in disputes.Where(d => d.InvoiceId.HasValue))
+        {
+            var invoice = invoices.FirstOrDefault(i => i.Id == dispute.InvoiceId.Value);
+            if (invoice != null)
+            {
+                invoice.IsDisputed = true;
+                invoice.DisputedAt ??= today.AddDays(-10);
+            }
+        }
 
         await context.SaveChangesAsync();
     }
@@ -367,5 +405,161 @@ public static class SeedData
         }
 
         return (payments, cheques);
+    }
+
+    private sealed record CollectionTaskSeed(string CustomerCode, string? InvoiceNumber, string Title, DateTime DueDate, Priority Priority, Guid AssignedTo);
+
+    private static List<CollectionTask> BuildCollectionTasks(Guid tenantId, List<Customer> customers, List<Invoice> invoices, List<ApplicationUser> users, DateTime today)
+    {
+        var customerByCode = customers.ToDictionary(c => c.Code);
+        var invoiceByNumber = invoices.ToDictionary(i => i.InvoiceNumber);
+        var adminId = users.First(u => u.Email == "admin@atlas-distribution.dz").Id;
+        var agentId = users.First(u => u.Email == "agent@atlas-distribution.dz").Id;
+
+        var seeds = new[]
+        {
+            new CollectionTaskSeed("CUST-001", "INV-2025-008", "Relance téléphonique pharmacie El Yasmine", today, Priority.High, adminId),
+            new CollectionTaskSeed("CUST-002", "INV-2025-018", "Suivi chèque rejeté AgroDis Sud", today.AddDays(-2), Priority.Critical, agentId),
+            new CollectionTaskSeed("CUST-003", null, "Plan de règlement Gros Œuvre Bâtiments Est", today.AddDays(3), Priority.Medium, adminId),
+            new CollectionTaskSeed("CUST-004", "INV-2025-014", "Relance machines à laver Benali Frères", today.AddDays(1), Priority.Medium, agentId),
+            new CollectionTaskSeed("CUST-007", "INV-2025-020", "Vérification paiement programme El Biar", today.AddDays(-5), Priority.High, adminId),
+            new CollectionTaskSeed("CUST-008", "INV-2025-024", "Relance smartphones Electro Atlas", today.AddDays(2), Priority.Low, agentId),
+            new CollectionTaskSeed("CUST-010", "INV-2025-032", "Négociation échéancier Grossiste El Anka", today.AddDays(4), Priority.High, adminId),
+            new CollectionTaskSeed("CUST-011", "INV-2025-030", "Relance pédiatrie Pharmacie Essalem", today.AddDays(-1), Priority.Medium, agentId)
+        };
+
+        return seeds.Select(s => new CollectionTask
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CustomerId = customerByCode[s.CustomerCode].Id,
+            InvoiceId = s.InvoiceNumber != null ? invoiceByNumber[s.InvoiceNumber].Id : null,
+            Title = s.Title,
+            Description = $"Tâche de recouvrement pour {s.Title}",
+            DueDate = s.DueDate,
+            Priority = s.Priority,
+            AssignedToId = s.AssignedTo,
+            Status = s.DueDate < today ? TaskStatus.Overdue : TaskStatus.Pending
+        }).ToList();
+    }
+
+    private sealed record CollectionActionSeed(string CustomerCode, string? InvoiceNumber, CollectionActionType Type, CollectionActionOutcome Outcome, DateTime ActionDate, Guid AssignedTo, string Notes);
+
+    private static List<CollectionAction> BuildCollectionActions(Guid tenantId, List<Customer> customers, List<Invoice> invoices, List<ApplicationUser> users, DateTime today)
+    {
+        var customerByCode = customers.ToDictionary(c => c.Code);
+        var invoiceByNumber = invoices.ToDictionary(i => i.InvoiceNumber);
+        var adminId = users.First(u => u.Email == "admin@atlas-distribution.dz").Id;
+        var agentId = users.First(u => u.Email == "agent@atlas-distribution.dz").Id;
+
+        var seeds = new[]
+        {
+            new CollectionActionSeed("CUST-001", "INV-2025-008", CollectionActionType.PhoneCall, CollectionActionOutcome.PromisedPayment, today.AddDays(-1), adminId, "Promesse de paiement la semaine prochaine"),
+            new CollectionActionSeed("CUST-002", "INV-2025-018", CollectionActionType.Email, CollectionActionOutcome.NoAnswer, today.AddDays(-2), agentId, "Email relance chèque rejeté"),
+            new CollectionActionSeed("CUST-003", null, CollectionActionType.Meeting, CollectionActionOutcome.PromisedPayment, today.AddDays(-3), adminId, "Réunion plan de règlement"),
+            new CollectionActionSeed("CUST-004", "INV-2025-014", CollectionActionType.WhatsApp, CollectionActionOutcome.WrongContact, today.AddDays(-1), agentId, "Numéro WhatsApp incorrect"),
+            new CollectionActionSeed("CUST-005", "INV-2025-010", CollectionActionType.PhoneCall, CollectionActionOutcome.PaymentReceived, today.AddDays(-4), adminId, "Paiement confirmé par virement"),
+            new CollectionActionSeed("CUST-007", "INV-2025-020", CollectionActionType.Email, CollectionActionOutcome.Dispute, today.AddDays(-5), agentId, "Client conteste les quantités"),
+            new CollectionActionSeed("CUST-008", "INV-2025-024", CollectionActionType.PhoneCall, CollectionActionOutcome.CustomerUnreachable, today.AddDays(-2), adminId, "Téléphone injoignable"),
+            new CollectionActionSeed("CUST-009", "INV-2025-025", CollectionActionType.WhatsApp, CollectionActionOutcome.PromisedPayment, today.AddDays(-1), agentId, "Promesse de règlement partiel"),
+            new CollectionActionSeed("CUST-010", "INV-2025-032", CollectionActionType.Meeting, CollectionActionOutcome.Escalate, today.AddDays(-6), adminId, "Escalade vers responsable crédit"),
+            new CollectionActionSeed("CUST-011", "INV-2025-030", CollectionActionType.PhoneCall, CollectionActionOutcome.Refused, today.AddDays(-3), agentId, "Client refuse de payer pour l'instant")
+        };
+
+        return seeds.Select(s => new CollectionAction
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CustomerId = customerByCode[s.CustomerCode].Id,
+            InvoiceId = s.InvoiceNumber != null ? invoiceByNumber[s.InvoiceNumber].Id : null,
+            Type = s.Type,
+            Outcome = s.Outcome,
+            ActionDate = s.ActionDate,
+            AssignedToId = s.AssignedTo,
+            CreatedById = s.AssignedTo,
+            Notes = s.Notes,
+            Priority = Priority.Medium,
+            IsClosed = false
+        }).ToList();
+    }
+
+    private sealed record PromiseSeed(string CustomerCode, string? InvoiceNumber, decimal Amount, DateTime PromiseDate, decimal? FulfilledAmount, PromiseStatus Status, Guid Responsible, string Notes);
+
+    private static List<PromiseToPay> BuildPromises(Guid tenantId, List<Customer> customers, List<Invoice> invoices, List<ApplicationUser> users, DateTime today)
+    {
+        var customerByCode = customers.ToDictionary(c => c.Code);
+        var invoiceByNumber = invoices.ToDictionary(i => i.InvoiceNumber);
+        var adminId = users.First(u => u.Email == "admin@atlas-distribution.dz").Id;
+        var agentId = users.First(u => u.Email == "agent@atlas-distribution.dz").Id;
+
+        var seeds = new[]
+        {
+            new PromiseSeed("CUST-001", "INV-2025-008", 1_250_000m, today.AddDays(5), null, PromiseStatus.Pending, adminId, "Paiement prévu par virement"),
+            new PromiseSeed("CUST-002", "INV-2025-018", 4_800_000m, today.AddDays(-10), 4_800_000m, PromiseStatus.Fulfilled, agentId, "Chèque compensé"),
+            new PromiseSeed("CUST-009", "INV-2025-025", 1_950_000m, today.AddDays(-3), 1_000_000m, PromiseStatus.PartiallyFulfilled, agentId, "Paiement partiel reçu"),
+            new PromiseSeed("CUST-011", "INV-2025-030", 1_480_000m, today.AddDays(-7), 0m, PromiseStatus.Broken, adminId, "Promesse non honorée")
+        };
+
+        return seeds.Select(s => new PromiseToPay
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CustomerId = customerByCode[s.CustomerCode].Id,
+            InvoiceId = s.InvoiceNumber != null ? invoiceByNumber[s.InvoiceNumber].Id : null,
+            PromisedAmount = s.Amount,
+            Currency = "DZD",
+            PromiseDate = s.PromiseDate,
+            ResponsibleAgentId = s.Responsible,
+            Status = s.Status,
+            FulfilledAmount = s.FulfilledAmount,
+            FulfilledDate = s.FulfilledAmount.HasValue && s.FulfilledAmount.Value > 0 ? today.AddDays(-1) : null,
+            Notes = s.Notes
+        }).ToList();
+    }
+
+    private static List<Dispute> BuildDisputes(Guid tenantId, List<Customer> customers, List<Invoice> invoices, List<ApplicationUser> users, DateTime today)
+    {
+        var customerByCode = customers.ToDictionary(c => c.Code);
+        var invoiceByNumber = invoices.ToDictionary(i => i.InvoiceNumber);
+        var adminId = users.First(u => u.Email == "admin@atlas-distribution.dz").Id;
+        var agentId = users.First(u => u.Email == "agent@atlas-distribution.dz").Id;
+
+        var disputedInvoice = invoiceByNumber["INV-2025-006"];
+
+        return new List<Dispute>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                CustomerId = customerByCode["CUST-003"].Id,
+                InvoiceId = disputedInvoice.Id,
+                Title = "Litige sur quantités livrées",
+                Description = "Le client conteste les quantités de ciment livrées sur la facture disputée.",
+                Type = DisputeType.DeliveryIssue,
+                Status = DisputeStatus.Open,
+                DisputedAmount = 4_200_000m,
+                Currency = "DZD",
+                ResponsibleId = adminId,
+                Department = "Recouvrement",
+                DueDate = today.AddDays(15)
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                CustomerId = customerByCode["CUST-007"].Id,
+                InvoiceId = invoiceByNumber["INV-2025-020"].Id,
+                Title = "Litige sur prestation chantier El Biar",
+                Description = "Désaccord sur l'avancement des travaux facturés.",
+                Type = DisputeType.ContractIssue,
+                Status = DisputeStatus.Investigating,
+                DisputedAmount = 6_000_000m,
+                Currency = "DZD",
+                ResponsibleId = agentId,
+                Department = "Juridique",
+                DueDate = today.AddDays(30)
+            }
+        };
     }
 }

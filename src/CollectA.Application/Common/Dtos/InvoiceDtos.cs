@@ -27,6 +27,9 @@ public class InvoiceDetailDto : InvoiceDto
 {
     public List<InvoiceLineDto> Lines { get; set; } = new();
     public List<PaymentDto> Payments { get; set; } = new();
+    public List<CollectionActionDto> Actions { get; set; } = new();
+    public List<PromiseToPayDto> Promises { get; set; } = new();
+    public List<DisputeDto> Disputes { get; set; } = new();
 }
 
 public class InvoiceLineDto

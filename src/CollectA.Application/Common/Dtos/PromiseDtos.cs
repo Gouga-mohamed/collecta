@@ -1,4 +1,5 @@
 using CollectA.Domain.Enums;
+using MediatR;
 
 namespace CollectA.Application.Common.Dtos;
 
@@ -15,13 +16,14 @@ public class PromiseToPayDto
     public Guid? ResponsibleAgentId { get; set; }
     public string? ResponsibleAgentName { get; set; }
     public PromiseStatus Status { get; set; }
+    public string StatusLabel => Status.ToString();
     public decimal? FulfilledAmount { get; set; }
     public DateTime? FulfilledDate { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
-public class CreatePromiseCommand
+public class CreatePromiseToPayCommand : IRequest<PromiseToPayDto>
 {
     public Guid CustomerId { get; set; }
     public Guid? InvoiceId { get; set; }
@@ -32,7 +34,7 @@ public class CreatePromiseCommand
     public string? Notes { get; set; }
 }
 
-public class UpdatePromiseCommand
+public class UpdatePromiseToPayCommand : IRequest<PromiseToPayDto>
 {
     public Guid Id { get; set; }
     public decimal PromisedAmount { get; set; }
@@ -41,5 +43,12 @@ public class UpdatePromiseCommand
     public decimal? FulfilledAmount { get; set; }
     public DateTime? FulfilledDate { get; set; }
     public Guid? ResponsibleAgentId { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class FulfillPromiseToPayCommand : IRequest<PromiseToPayDto>
+{
+    public Guid Id { get; set; }
+    public decimal FulfilledAmount { get; set; }
     public string? Notes { get; set; }
 }
