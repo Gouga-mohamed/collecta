@@ -45,8 +45,11 @@ La barre latérale (sidebar) se trouve à gauche de l'écran. Elle contient les 
 | **Factures** | Liste et détail des factures |
 | **Paiements** | Historique des paiements |
 | **Créances** | Suivi des créances, aging, overdue |
+| **Recouvrement** | Tâches et actions de recouvrement |
+| **Promesses** | Promesses de paiement des clients |
+| **Litiges** | Contestations et workflow de résolution |
 | **Import CSV** | Assistant d'import clients + factures |
-| **Recouvrement / Promesses / Litiges / Analytics / Paramètres** | Placeholders — fonctionnalités à venir |
+| **Analytics / Paramètres** | Placeholders — fonctionnalités à venir |
 
 Cliquez sur un menu pour ouvrir la page correspondante. Le menu actif est mis en évidence.
 
@@ -254,7 +257,118 @@ Résultat attendu : CollectA crée ou met à jour les clients par `CustomerCode`
 
 ---
 
-## Tutoriel 7 — Comprendre les analytics
+## Tutoriel 7 — Gérer le recouvrement
+
+### Créer une tâche de recouvrement
+
+1. Cliquez sur **Recouvrement** dans la sidebar.
+2. L'onglet **Tâches** s'affiche par défaut.
+3. Cliquez sur **Nouvelle tâche**.
+4. Renseignez :
+   - **Titre** de la tâche (ex. "Relance téléphonique Pharmacie El Yasmine").
+   - **Client** concerné.
+   - **Facture** associée (optionnel).
+   - **Assigné à** : sélectionnez l'agent chargé du suivi.
+   - **Date d'échéance** de la tâche.
+   - **Priorité** : Low, Medium, High, Critical.
+   - **Description** (optionnel).
+5. Cliquez sur **Enregistrer**.
+
+Résultat attendu : la tâche apparaît dans la liste avec le statut **Pending**. L'agent assigné la verra dans son dashboard et dans sa liste "Mes tâches".
+
+### Marquer une tâche comme terminée
+
+1. Dans la liste des tâches, cliquez sur **Terminer** (icône check) sur la ligne concernée.
+2. Ajoutez éventuellement des **notes de clôture**.
+3. Cliquez sur **Terminer**.
+
+Résultat attendu : le statut passe à **Completed** et la date de clôture est enregistrée.
+
+### Enregistrer une action de recouvrement
+
+1. Dans **Recouvrement**, passez à l'onglet **Actions**.
+2. Cliquez sur **Nouvelle action**.
+3. Renseignez :
+   - **Client** et éventuellement **Facture**.
+   - **Type** : PhoneCall, Email, WhatsApp, Sms, Meeting, Reminder, etc.
+   - **Date de l'action** (date réelle du contact).
+   - **Date d'échéance** (si l'action est planifiée).
+   - **Assigné à**.
+   - **Priorité**.
+   - **Notes** : résumé de l'échange.
+4. Cliquez sur **Enregistrer**.
+
+Résultat attendu : l'action est créée. Vous pouvez ensuite la clôturer ou enregistrer son **outcome** (pas de réponse, promesse, paiement reçu, litige, etc.).
+
+### Clôturer une action
+
+1. Dans la liste des actions, cliquez sur **Clôturer**.
+2. L'action est marquée comme clôturée (`IsClosed = true`).
+
+Résultat attendu : l'action n'apparaît plus dans les actions actives à traiter.
+
+## Tutoriel 8 — Gérer les promesses de paiement
+
+### Créer une promesse
+
+1. Cliquez sur **Promesses** dans la sidebar.
+2. Cliquez sur **Nouvelle promesse**.
+3. Renseignez :
+   - **Client** et éventuellement **Facture**.
+   - **Montant promis** en DZD.
+   - **Date promise** (date d'échéance de l'engagement).
+   - **Responsable** (agent en charge du suivi).
+   - **Notes**.
+4. Cliquez sur **Enregistrer**.
+
+Résultat attendu : la promesse est créée avec le statut **Pending**.
+
+### Enregistrer un encaissement sur une promesse
+
+1. Dans la liste des promesses, cliquez sur **Encaisser** sur la ligne concernée.
+2. Saisissez le **montant effectivement reçu**.
+3. Ajoutez éventuellement une note.
+4. Cliquez sur **Confirmer**.
+
+Résultat attendu :
+- Si le montant reçu est supérieur ou égal au montant promis → statut **Fulfilled**.
+- Si le montant reçu est partiel → statut **PartiallyFulfilled**.
+- Si aucun montant n'est reçu → statut **Broken**.
+
+## Tutoriel 9 — Gérer les litiges
+
+### Créer un litige
+
+1. Cliquez sur **Litiges** dans la sidebar.
+2. Cliquez sur **Nouveau litige**.
+3. Renseignez :
+   - **Titre** (ex. "Contestations quantités livrées").
+   - **Description** détaillée.
+   - **Client** et **Facture** concernés.
+   - **Type** : PricingIssue, DeliveryIssue, QualityIssue, MissingDocument, IncorrectInvoice, ContractIssue, Other.
+   - **Montant contesté** (optionnel).
+   - **Responsable** et **Département**.
+   - **Date d'échéance** de résolution souhaitée.
+   - **Notes**.
+4. Cliquez sur **Enregistrer**.
+
+Résultat attendu : le litige est créé avec le statut **Open**. La facture liée passe automatiquement en statut **Disputed**.
+
+### Faire avancer le workflow d'un litige
+
+1. Dans la liste des litiges, cliquez sur **Changer le statut**.
+2. Sélectionnez le nouveau statut :
+   - **Investigating** : en cours d'analyse interne.
+   - **WaitingCustomer** : en attente d'informations du client.
+   - **WaitingInternal** : en attente d'une décision interne.
+   - **Resolved** : litige résolu.
+   - **Closed** : clôturé sans suite.
+3. Ajoutez des **notes de résolution**.
+4. Cliquez sur **Confirmer**.
+
+Résultat attendu : le statut est mis à jour. Si le litige passe à **Resolved** ou **Closed**, la date de résolution est enregistrée et la facture liée perd son statut **Disputed**.
+
+## Tutoriel 10 — Comprendre les analytics
 
 1. Allez dans **Analytics** (placeholder visuel actuel ; les données sont déjà accessibles via le dashboard et les endpoints API).
 2. Les indicateurs disponibles sont :

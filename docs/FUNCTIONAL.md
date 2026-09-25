@@ -43,7 +43,7 @@ Payment (virement, espèces, chèque)
 Cash (encaissement effectif)
 ```
 
-Dans la V1, les étapes **Invoice**, **Payment** et le suivi du **Due Date** sont pleinement opérationnels. Les étapes **Collection Action** et **Promise to Pay** existent en modèle de données mais ne sont pas encore actives en API/UI (Phase 3).
+Dans la V1, les étapes **Invoice**, **Payment**, le suivi du **Due Date**, les **Collection Actions**, les **Tasks**, les **Promises to Pay** et les **Disputes** sont pleinement opérationnels en API et en UI. Seuls les templates d'email de relance et le moteur de workflow automatique (scénarios overdue → action) sont reportés à la Phase 5.
 
 ---
 
@@ -230,30 +230,111 @@ Dans la V1, les étapes **Invoice**, **Payment** et le suivi du **Due Date** son
   - `KeyNotFoundException` → 404 Not Found
   - `InvalidOperationException` → 409 Conflict
 
-### 2.10 Hors périmètre V1
+### 2.10 Tâches de recouvrement (Collection Tasks)
 
-- Workflows de recouvrement automatisés (Phase 3).
-- Promesses de paiement et litiges actifs en UI/API (entités Domain prêtes, non branchées).
-- Notifications temps réel (Phase 4).
-- Intégrations ERP, WhatsApp, banque (Phase 5).
-- Multi-devise (Phase 5).
-- i18n arabe / anglais (Phase 5).
-- Mobile app (V2).
+**Objectif :** planifier et suivre le travail des agents de recouvrement.
+
+**Fonctionnalités livrées :**
+
+- CRUD complet des tâches de recouvrement (`/api/collection-tasks`).
+- Assignation à un utilisateur (`AssignedToId`), priorité (Low / Medium / High / Critical) et date d'échéance (`DueDate`).
+- Lien optionnel à un client et à une facture.
+- Endpoint de clôture `POST /api/collection-tasks/{id}/complete` avec notes de clôture.
+
+**Règles métier :**
+
+- Statuts possibles : `Pending`, `InProgress`, `Completed`, `Cancelled`, `Overdue`.
+- Une tâche est créée en statut `Pending`.
+- La clôture passe le statut à `Completed` et enregistre la date/heure UTC de clôture.
+- Les tâches en retard sont identifiées par `DueDate < Today` et statut non terminal.
+
+### 2.11 Actions de recouvrement (Collection Actions)
+
+**Objectif :** tracer chaque contact ou tentative de contact avec un débiteur.
+
+**Fonctionnalités livrées :**
+
+- CRUD complet des actions (`/api/collection-actions`).
+- Types d'action : `PhoneCall`, `Email`, `WhatsApp`, `Sms`, `Meeting`, `Reminder`, `InternalTask`, `Escalation`.
+- Outcome : `None`, `NoAnswer`, `PromisedPayment`, `PaymentReceived`, `Dispute`, `WrongContact`, `Refused`, `CustomerUnreachable`, `Escalate`, `Other`.
+- Endpoint de clôture `POST /api/collection-actions/{id}/close`.
+
+**Règles métier :**
+
+- L'utilisateur authentifié est enregistré comme `CreatedById`.
+- Une action clôturée (`IsClosed = true`) ne peut plus être modifiée via le endpoint de clôture.
+- `ActionDate` représente la date réelle de l'action ; `DueDate` permet de planifier une action future.
+- Le `CustomerId` est obligatoire ; la facture est optionnelle.
+
+### 2.12 Promesses de paiement (Promise to Pay)
+
+**Objectif :** formaliser et suivre les engagements de règlement des clients.
+
+**Fonctionnalités livrées :**
+
+- CRUD complet des promesses (`/api/promises`).
+- Statuts : `Pending`, `Fulfilled`, `PartiallyFulfilled`, `Broken`, `Cancelled`.
+- Endpoint d'encaissement partiel ou total `POST /api/promises/{id}/fulfill`.
+- Lien optionnel à un client et à une facture.
+
+**Règles métier :**
+
+- Une promesse est créée en statut `Pending`.
+- `Fulfill` enregistre le montant effectivement perçu (`FulfilledAmount`) et la date d'encaissement.
+- Le statut final est calculé par `PromiseStatusCalculator` :
+  - `FulfilledAmount >= PromisedAmount` → `Fulfilled`
+  - `FulfilledAmount > 0` → `PartiallyFulfilled`
+  - Sinon → `Broken`
+- Une promesse `Cancelled` ne peut pas être encaissée.
+
+### 2.13 Litiges (Disputes)
+
+**Objectif :** gérer les contestations clients de la création à la résolution.
+
+**Fonctionnalités livrées :**
+
+- CRUD complet des litiges (`/api/disputes`).
+- Workflow de statut : `Open` → `Investigating` → `WaitingCustomer` / `WaitingInternal` → `Resolved` → `Closed`.
+- Types de litige : `PricingIssue`, `DeliveryIssue`, `QualityIssue`, `MissingDocument`, `IncorrectInvoice`, `ContractIssue`, `Other`.
+- Endpoint de changement de statut `PUT /api/disputes/{id}/status` avec notes de résolution.
+- Marquage automatique de la facture liée en statut `Disputed`.
+
+**Règles métier :**
+
+- Les transitions de statut sont contrôlées par `DisputeWorkflow.CanTransitionTo`.
+- Passage à `Resolved` ou à un statut inactif (`Closed`) enregistre automatiquement `ResolvedAt`.
+- Lors de la résolution, la facture liée perd son flag `IsDisputed` et son statut est recalculé.
+- Le montant contesté (`DisputedAmount`) est optionnel ; la devise par défaut est `DZD`.
+
+### 2.14 Agent dashboard
+
+**Objectif :** donner à l'agent sa vue quotidienne opérationnelle.
+
+**Fonctionnalités livrées :**
+
+- Endpoint consolidé `GET /api/agent-dashboard`.
+- Compteurs : tâches en attente, actions du jour, promesses à échéance, tâches en retard.
+- Listes détaillées : mes tâches, mes actions du jour, mes promesses à échéance.
+
+**Règles métier :**
+
+- Seules les tâches assignées à l'utilisateur connecté comptent dans "mes tâches".
+- Les actions du jour sont filtrées sur `ActionDate == Today` (UTC).
+- Les promesses à échéance sont celles dont la date d'échéance est dans les 7 prochains jours et qui ne sont pas encore `Fulfilled`/`Cancelled`.
+
+### 2.15 Hors périmètre V1
+
+- Workflows de recouvrement automatisés (règles overdue → action) — Phase 5.
+- Templates d'email de relance configurables — Phase 5.
+- Notifications temps réel — Phase 4.
+- Intégrations ERP, WhatsApp, banque — Phase 5.
+- Multi-devise — Phase 5.
+- i18n arabe / anglais — Phase 5.
+- Mobile app — V2.
 
 ---
 
-## 3. Phase 3 et Phase 4 — Ce qui est prévu
-
-> Ces phases sont en conception. Les entités de domaine existent déjà mais ne sont pas encore exposées via API/UI.
-
-### Phase 3 — Collections (recouvrement)
-
-- **Tâches de recouvrement** : assignation à un agent, priorité, échéance, statut.
-- **Actions de recouvrement** : appel téléphonique, email, SMS, WhatsApp, visite, rappel.
-- **Promesses de paiement** : statuts `Pending`, `Fulfilled`, `PartiallyFulfilled`, `Broken`.
-- **Litiges** : workflow `Open → Investigating → Waiting → Resolved → Closed`.
-- **Templates de relance** : friendly, due, overdue, final notice.
-- **Agent dashboard "Today"** : vue quotidienne des tâches et appels.
+## 3. Phase 4 — Ce qui est prévu
 
 ### Phase 4 — Intelligence & Analytics avancée
 
@@ -262,6 +343,8 @@ Dans la V1, les étapes **Invoice**, **Payment** et le suivi du **Due Date** son
 - Centre de notifications.
 - Scénarios de cash forecast plus fins.
 - Pages analytics dédiées en UI.
+
+La Phase 3 (Collections) est déjà livrée et documentée dans les sections 2.10 à 2.14.
 
 ---
 
@@ -305,7 +388,7 @@ Lors du premier démarrage, un tenant de démo est créé automatiquement si la 
 - Numérotation : `INV-2025-001` à `INV-2025-034`.
 - Répartition sur tous les buckets aging.
 - 2 factures en statut **Draft**.
-- 1 facture en statut **Disputed** (CUST-003, litige sur quantités livrées).
+- 2 factures en statut **Disputed** (CUST-003 litige sur quantités, CUST-005 litige sur prix).
 
 ### 4.4 Paiements (15)
 
@@ -313,7 +396,29 @@ Lors du premier démarrage, un tenant de démo est créé automatiquement si la 
 - Espèces.
 - 6 chèques avec statuts variés : `Received`, `Deposited`, `Cleared`, `Rejected`, `Returned`.
 
-### 4.5 Régénérer les données de démo
+### 4.5 Tâches de recouvrement (8)
+
+- Assignées à l'agent `agent@atlas-distribution.dz`.
+- Priorités variées : Low, Medium, High, Critical.
+- Dates d'échéance passées et futures.
+
+### 4.6 Actions de recouvrement (10)
+
+- Types : PhoneCall, Email, WhatsApp.
+- Outcomes : NoAnswer, PromisedPayment, Dispute, WrongContact, Refused.
+- Quelques actions clôturées, d'autres ouvertes.
+
+### 4.7 Promesses de paiement (4)
+
+- Montants en DZD, dates passées et futures.
+- Statuts : `Fulfilled`, `PartiallyFulfilled`, `Pending`, `Broken`.
+
+### 4.8 Litiges (2)
+
+- CUST-003 : litige sur quantités livrées.
+- CUST-005 : litige sur prix appliqué.
+
+### 4.9 Régénérer les données de démo
 
 1. Arrêtez le backend.
 2. Supprimez la base PostgreSQL (`docker-compose down -v` ou `dropdb collecta`).
@@ -427,6 +532,64 @@ Tous les endpoints métier nécessitent un JWT valide, sauf `auth/register`, `au
 | POST | `/api/imports/csv` | Uploader un CSV (base64), retourne l'aperçu |
 | GET | `/api/imports/{sessionId}/preview` | Prévisualiser avec mapping personnalisé |
 | POST | `/api/imports/{sessionId}/confirm` | Confirmer l'import |
+
+### Tâches de recouvrement
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/api/collection-tasks` | Liste paginée des tâches |
+| GET | `/api/collection-tasks/{id}` | Détail d'une tâche |
+| POST | `/api/collection-tasks` | Créer une tâche |
+| PUT | `/api/collection-tasks/{id}` | Modifier une tâche |
+| DELETE | `/api/collection-tasks/{id}` | Supprimer une tâche |
+| POST | `/api/collection-tasks/{id}/complete` | Marquer une tâche comme terminée |
+
+**Query params `GET /api/collection-tasks` :** `pageNumber`, `pageSize`, `search`, `sortBy`, `sortDescending`, `customerId`, `assignedToId`, `status`, `priority`, `isOverdue`, `fromDate`, `toDate`.
+
+### Actions de recouvrement
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/api/collection-actions` | Liste paginée des actions |
+| GET | `/api/collection-actions/{id}` | Détail d'une action |
+| POST | `/api/collection-actions` | Créer une action |
+| PUT | `/api/collection-actions/{id}` | Modifier une action (outcome, assignation, clôture) |
+| DELETE | `/api/collection-actions/{id}` | Supprimer une action |
+| POST | `/api/collection-actions/{id}/close` | Clôturer une action |
+
+**Query params `GET /api/collection-actions` :** `pageNumber`, `pageSize`, `search`, `sortBy`, `sortDescending`, `customerId`, `assignedToId`, `type`, `outcome`, `isClosed`, `fromDate`, `toDate`.
+
+### Promesses de paiement
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/api/promises` | Liste paginée des promesses |
+| GET | `/api/promises/{id}` | Détail d'une promesse |
+| POST | `/api/promises` | Créer une promesse |
+| PUT | `/api/promises/{id}` | Modifier une promesse |
+| DELETE | `/api/promises/{id}` | Supprimer une promesse |
+| POST | `/api/promises/{id}/fulfill` | Enregistrer un encaissement sur la promesse |
+
+**Query params `GET /api/promises` :** `pageNumber`, `pageSize`, `search`, `sortBy`, `sortDescending`, `customerId`, `status`, `fromDate`, `toDate`.
+
+### Litiges
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/api/disputes` | Liste paginée des litiges |
+| GET | `/api/disputes/{id}` | Détail d'un litige |
+| POST | `/api/disputes` | Créer un litige |
+| PUT | `/api/disputes/{id}` | Modifier un litige |
+| DELETE | `/api/disputes/{id}` | Supprimer un litige |
+| PUT | `/api/disputes/{id}/status` | Changer le statut du litige |
+
+**Query params `GET /api/disputes` :** `pageNumber`, `pageSize`, `search`, `sortBy`, `sortDescending`, `customerId`, `status`, `type`, `fromDate`, `toDate`.
+
+### Agent dashboard
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/api/agent-dashboard` | Vue quotidienne consolidée de l'agent connecté |
 
 ---
 

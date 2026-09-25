@@ -153,11 +153,11 @@ Légende :
 
 | # | Tâche | Statut | Notes |
 |---|-------|--------|-------|
-| 3.1 | Collection tasks CRUD | ⏳ | Assignation, due date, priorité, statut |
-| 3.2 | Collection actions CRUD | ⏳ | Phone, email, WhatsApp, SMS, meeting, reminder |
-| 3.3 | Promise to Pay module | ⏳ | Statuts pending/fulfilled/partially/broken |
-| 3.4 | Disputes workflow | ⏳ | Open → Investigating → Waiting → Resolved → Closed |
-| 3.5 | Agent dashboard data | ⏳ | My tasks, today's calls, promises due |
+| 3.1 | Collection tasks CRUD | ✅ | `CollectionTasksController`, CRUD + complete |
+| 3.2 | Collection actions CRUD | ✅ | `CollectionActionsController`, CRUD + close |
+| 3.3 | Promise to Pay module | ✅ | `PromisesController`, CRUD + fulfill |
+| 3.4 | Disputes workflow | ✅ | `DisputesController`, CRUD + change status |
+| 3.5 | Agent dashboard data | ✅ | `AgentDashboardController` |
 | 3.6 | Email reminders templates | ⏳ | Friendly, due, overdue, final notice |
 | 3.7 | Collection workflow engine (base) | ⏳ | Règles overdue → actions |
 
@@ -165,18 +165,18 @@ Légende :
 
 | # | Tâche | Statut | Notes |
 |---|-------|--------|-------|
-| 3.8 | Collections tasks page | ⏳ | Vue agent + vue manager |
-| 3.9 | Collection action modal | ⏳ | Création d'action avec outcome |
-| 3.10 | Promises page | ⏳ | Liste, filtres par statut |
-| 3.11 | Disputes page | ⏳ | Workflow visuel |
-| 3.12 | Agent dashboard "Today" | ⏳ | Vue quotidienne des actions |
+| 3.8 | Collections tasks page | ✅ | `/collections` avec onglets Tâches / Actions |
+| 3.9 | Collection action modal | ✅ | `collection-action-form-dialog.tsx` |
+| 3.10 | Promises page | ✅ | `/promises` avec filtres et fulfillment |
+| 3.11 | Disputes page | ✅ | `/disputes` avec workflow visuel |
+| 3.12 | Agent dashboard "Today" | ✅ | Intégré dans `/dashboard` et `/collections` |
 
 ### Definition of Done Phase 3
 
-- [ ] Un agent peut voir ses tâches du jour.
-- [ ] Un manager peut assigner des actions.
-- [ ] Promesses et litiges traçables.
-- [ ] Templates de relance configurables.
+- [x] Un agent peut voir ses tâches du jour.
+- [x] Un manager peut assigner des actions.
+- [x] Promesses et litiges traçables.
+- [ ] Templates de relance configurables (reporter Phase 5).
 
 ---
 
@@ -266,16 +266,23 @@ Légende :
 
 Tous les livrables de la Phase 2 (Core Receivables) sont implémentés et validés : clients, factures, paiements + chèques, créances, aging, Customer 360, dashboard CFO, analytics et import CSV wizard.
 
+## Phase 3 — terminée
+
+**Date de clôture :** 2026-09-25
+
+Tous les livrables opérationnels de la Phase 3 (Collections) sont implémentés et validés E2E : tâches de recouvrement, actions de recouvrement (téléphone, email, WhatsApp, SMS, rendez-vous, rappel), promesses de paiement avec fulfillment, litiges avec workflow de statut, et agent dashboard. Les templates d'email de relance et le moteur de workflow automatique sont reportés à la Phase 5.
+
 ## Métriques actuelles
 
 - **Build backend :** ✅ 0 erreur, 0 warning
-- **Build frontend :** ✅ TypeScript OK
-- **Tests :** ✅ 31/31 passés (xUnit, calculs aging aux bornes, transitions de statut, paiements/chèques)
+- **Build frontend :** ✅ TypeScript OK, 17 routes générées
+- **Tests :** ✅ 48/48 passés (xUnit, calculs aging, transitions promises/disputes, statuts factures/chèques)
 - **Migrations :** ✅ `InitialCreate` générée
 - **Endpoints Phase 2 exposés :** Customers, Customer 360, Invoices, Payments, Receivables, Dashboard, Analytics, Imports
-- **Seed algérien :** 11 clients, 34 factures, 15 paiements (dont 6 chèques), 1 facture en litige
-- **Docker Compose :** ✅ Fichiers prêts (non exécuté ici faute de daemon)
-- **Documentation :** ✅ `ARCHITECTURE.md`, `README.md`, `docs/PLAN.md`
+- **Endpoints Phase 3 exposés :** CollectionTasks, CollectionActions, Promises, Disputes, AgentDashboard
+- **Seed algérien :** 11 clients, 34 factures, 15 paiements (dont 6 chèques), 8 tâches, 10 actions, 4 promesses, 2 litiges
+- **Docker Compose :** ✅ Testé localement (postgres:5434, redis:6379)
+- **Documentation :** ✅ `ARCHITECTURE.md`, `README.md`, `docs/PLAN.md`, `docs/FUNCTIONAL.md`, `docs/USER_GUIDE.md`
 
 ---
 
